@@ -1,0 +1,78 @@
+- name: check if python is already installed
+  stat: path="{{ python_binary_path }}"
+  register: python_version_installed
+
+- name: check if python archive existed
+  stat: path="/var/tmp/{{ python_archive_name }}"
+  register: python_archive_remote
+
+- name: check if python binary is available on local system
+  local_action: stat path={{ binary_path }}/{{ python_archive_name }}
+  register: python_archive_local
+  become: no
+
+- name: check if python src is available on local system
+  local_action: stat path={{ binary_path }}/{{ python_src_tarball }}
+  register: python_src_local
+  become: no
+
+- name: check if python src existed on remote system
+  stat: path="/var/tmp/{{ python_src_tarball }}"
+  register: python_src_remote
+
+- name: copy src from local to remote
+  copy: src="{{ binary_path }}/{{ python_src_tarball }}" dest="/var/tmp/{{ python_src_tarball }}"
+  when: (python_src_remote.stat.exists == False and python_src_local.stat.exists == True)
+  register: python_src_copied
+
+- fail:
+    msg: "Unable to continue without src {{ binary_path }}/{{ python_src_tarball }}"
+  when: python_src_local.stat.exists == False
+
+- name: Extract src tarball
+  unarchive:
+    remote_src: yes
+    src: /var/tmp/{{ python_src_tarball }}
+    dest: /var/tmp
+  when: python_src_copied.changed
+  register: python_src_extracted
+
+- name: execute configured command
+  shell: |
+    cd /var/tmp/Python-{{ python_version }}
+    ./configure --prefix={{ python_prefix }} --with-ensurepip=install --enable-shared
+    make
+    make altinstall
+  args:
+    chdir: "/var/tmp/Python-{{ python_version }}"
+    executable: /bin/bash
+  when: python_src_extracted.changed
+  register: python_make
+
+- name: patch library path for runtime portability
+  shell: |
+    patchelf --set-rpath "{{ python_prefix }}/lib:$ORIGIN" "{{ python_prefix }}/bin/python{{ python_major_version }}"
+  args:
+    executable: /bin/bash
+  when: python_make.changed
+
+- include: "pip_package_install.yml"
+
+- name: package python binary for distribution
+  archive:
+    path: "{{ python_prefix }}"
+    dest: /var/tmp/{{ python_archive_name }}
+    format: gz
+  when: python_archive_remote.stat.exists == False
+
+- name: check if python archive existed
+  stat: path="/var/tmp/{{ python_archive_name }}"
+  register: python_archive_remote
+
+- name: copy from remote archive to local
+  fetch:
+    src: /var/tmp/{{ python_archive_name }}
+    dest: "{{ binary_path }}/{{ python_archive_name }}"
+    flat: yes
+  when:  python_archive_remote.stat.exists and not python_archive_local.stat.exists
+  register: python_archive_copied

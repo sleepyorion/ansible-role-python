@@ -1,0 +1,15 @@
+- name: execute patchelf install
+  shell: |
+    cd /tmp
+    wget http://nixos.org/releases/patchelf/patchelf-0.10/patchelf-0.10.tar.bz2
+    tar xf patchelf-0.10.tar.bz2
+    cd patchelf-0.10
+    ./configure --prefix="/usr/local"
+    make install
+    strip --strip-unneeded /usr/local/bin/patchelf
+    #gzip -9 ~/.local/share/man/man1/patchelf.1
+  args:
+    executable: /bin/bash
+  register: patchelf_installed
+  become: true
+  when: python_install_mode == "build"

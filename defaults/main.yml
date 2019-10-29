@@ -1,0 +1,17 @@
+# Support two modes:
+# 1. build - retrieve python from src and build binary
+# 2. install - install python from binary pre-compiled
+
+python_install_mode: "build"
+python_install_force: false
+python_install_prefix: "/opt"
+python_build_force: false
+python_prefix: "/opt/python"
+python_major_version: "2.7"
+python_version: "2.7.17"
+python_binary_path: "{{python_prefix}}/bin/python{{python_major_version}}"
+python_url_prefix: "https://www.python.org/ftp/python"
+python_src_url: "{{python_url_prefix}}/{{python_version}}/Python-{{python_version}}"
+python_src_tarball: "Python-{{python_version}}.tgz"
+binary_path: "{{ role_path }}/files"
+python_archive_name: "python-{{ python_version }}-{{ ansible_os_family|lower }}-{{ ansible_distribution_version }}-{{ ansible_architecture }}.tar.gz"

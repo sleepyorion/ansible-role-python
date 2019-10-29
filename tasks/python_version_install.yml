@@ -1,0 +1,33 @@
+- name: check if python is already installed
+  stat: path="{{ python_binary_path }}"
+  register: python_version_installed
+
+- name: check if python archive existed
+  stat: path="/var/tmp/{{ python_archive_name }}"
+  register: python_archive_remote
+
+- name: check if python binary is available on local system
+  local_action: stat path={{ binary_path }}/{{ python_archive_name }}
+  register: python_archive_local
+  become: no
+
+- name: copy binary from local to remote
+  copy: src="{{ binary_path }}/{{ python_archive_name }}" dest="/var/tmp/{{ python_archive_name }}"
+  when: python_version_installed.stat.exists == False and python_archive_remote.stat.exists == False
+  register: python_src_copied
+
+- name: check if python archive existed
+  stat: path="/var/tmp/{{ python_archive_name }}"
+  register: python_archive_remote
+
+- fail:
+    msg: "Unable to continue without binary {{ binary_path }}/{{ python_archive_name }}"
+  when: python_version_installed.stat.exists == False and python_archive_remote.stat.exists == False
+
+- name: extract binary into remote target
+  unarchive:
+    src: "/var/tmp/{{ python_archive_name }}"
+    dest: "{{ python_install_prefix }}"
+    remote_src: yes
+  when: python_version_installed.stat.exists == False and ( python_src_copied.changed or python_archive_remote.stat.exists == True )
+  register: binary_extracted

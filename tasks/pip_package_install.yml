@@ -1,0 +1,3 @@
+- pip:
+    name: ansible==2.8.6
+    executable: "{{ python_prefix }}/bin/pip{{ python_major_version }}"

@@ -1,0 +1,14 @@
+- name: install prerequisite for Debian/Ubuntu python (build mode)
+  apt:
+    pkg:
+      - build-essential 
+      - bison
+      - zlib1g-dev
+      - libyaml-dev
+      - libssl-dev
+      - libgdbm-dev
+      - libreadline-dev
+      - libffi-dev
+    state: present
+  when: python_install_mode == "build"
+  become: true

@@ -1,0 +1,7 @@
+---
+- include: "{{ansible_os_family}}.yml"
+
+# install patchelf
+- include_tasks: patchelf.yml
+# install python
+- include_tasks: python_version_{{ python_install_mode }}.yml
